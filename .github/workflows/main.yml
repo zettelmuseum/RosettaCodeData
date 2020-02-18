@@ -1,0 +1,33 @@
+name: CI2
+
+on:
+  release:
+    types: [published]
+    
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: checkout
+        uses: actions/checkout@v2
+      - name: remove .git
+        run: |
+          rm -rf ./.git
+          find . -name "*.7z" -delete
+          7z a -t7z -mx9 my-artifact.7z ./
+          
+      - name: Get upload_url
+        run: echo "::set-output name=upload_url::https://uploads.github.com/repos/$GITHUB_REPOSITORY/releases/$(jq --raw-output '.release.id' $GITHUB_EVENT_PATH)/assets{?name,label}"  
+        id: release 
+    
+      
+      - name: Upload Release Asset
+        id: upload-release-asset 
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.release.outputs.upload_url }} 
+          asset_path: ./my-artifact.7z
+          asset_name: my-artifact2.7z
+          asset_content_type: application/zip
